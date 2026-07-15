@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: techwave-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      # ── Add these in Render Dashboard → Environment ──────────────────
+      # MONGODB_URI        = your Atlas connection string
+      # JWT_SECRET         = supersecretjwtkeyforadminauth123!
+      # TOTP_SECRET        = NBSWY3DPEB3W64TBNQXD2
+      # RP_ID              = techwave-attendance.vercel.app  (your Vercel domain)
+      # RP_NAME            = TechWave Software House Attendance System
+      # ORIGIN             = https://techwave-attendance.vercel.app
+      # SMTP_HOST          = smtp.gmail.com
+      # SMTP_PORT          = 465
+      # SMTP_SECURE        = true
+      # SMTP_USER          = techwavesoftwarehouse@gmail.com
+      # SMTP_PASS          = fobmlzmbvqgiyoxm
