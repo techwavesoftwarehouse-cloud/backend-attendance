@@ -33,8 +33,8 @@ const upload = multer({
 // ── Cookie options ──────────────────────────────────────
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure:   process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  secure:   true, // Required for sameSite: 'none'
+  sameSite: 'none',
   maxAge:   24 * 60 * 60 * 1000  // 1 day
 };
 
