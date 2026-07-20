@@ -1,14 +1,16 @@
-// #12 — Email notification utility via Nodemailer
-// Configure SMTP in .env to enable. Silently skips if not configured.
+// #12 — Email notification utility (supports Resend API over HTTPS or SMTP via Nodemailer)
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
 let transporter = null;
 
-const isConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const isSMTPConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
-if (isConfigured) {
+if (RESEND_API_KEY) {
+  console.log('✉️  Email service configured via Resend API (HTTPS)');
+} else if (isSMTPConfigured) {
   transporter = nodemailer.createTransport({
     host:   process.env.SMTP_HOST,
     port:   parseInt(process.env.SMTP_PORT || '587'),
@@ -18,10 +20,54 @@ if (isConfigured) {
       pass: process.env.SMTP_PASS
     }
   });
-  console.log('✉️  Email service configured via', process.env.SMTP_HOST);
+  console.log('✉️  Email service configured via SMTP:', process.env.SMTP_HOST);
 } else {
-  console.log('ℹ️  SMTP not configured — email notifications disabled. Add SMTP_HOST/SMTP_USER/SMTP_PASS to .env to enable.');
+  console.log('ℹ️  Email service not configured — email notifications disabled. Add RESEND_API_KEY or SMTP variables to enable.');
 }
+
+/**
+ * Common helper to send email via either Resend API (HTTP) or Nodemailer (SMTP)
+ */
+const sendEmail = async ({ to, subject, html }) => {
+  const fromName = process.env.EMAIL_FROM_NAME || "TechWave Software House";
+  const fromEmail = process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER || "onboarding@resend.dev";
+  const fromHeader = `"${fromName}" <${fromEmail}>`;
+
+  if (RESEND_API_KEY) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${RESEND_API_KEY}`
+        },
+        body: JSON.stringify({
+          from: fromHeader,
+          to: [to],
+          subject: subject,
+          html: html
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}`);
+      }
+      return data;
+    } catch (err) {
+      throw new Error(`Resend API failed: ${err.message}`);
+    }
+  } else if (transporter) {
+    return await transporter.sendMail({
+      from: fromHeader,
+      to,
+      subject,
+      html
+    });
+  } else {
+    // Email not configured
+    return null;
+  }
+};
 
 /**
  * Send a welcome / confirmation email when admin adds a new student
@@ -29,11 +75,10 @@ if (isConfigured) {
  * @param {string} enrollLink - one-time enrollment URL
  */
 export const sendWelcomeEmail = async (student, enrollLink) => {
-  if (!transporter || !student.email) return; // skip silently
+  if (!student.email) return;
 
   try {
-    await transporter.sendMail({
-      from: `"TechWave Software House" <${process.env.SMTP_USER}>`,
+    const res = await sendEmail({
       to:   student.email,
       subject: `🎉 Welcome to TechWave Software House — ${student.name}!`,
       html: `
@@ -96,7 +141,9 @@ export const sendWelcomeEmail = async (student, enrollLink) => {
         </div>
       `
     });
-    console.log(`✉️  Welcome email sent to ${student.email}`);
+    if (res) {
+      console.log(`✉️  Welcome email sent to ${student.email}`);
+    }
   } catch (err) {
     console.error('Welcome email send failed (non-fatal):', err.message);
   }
@@ -108,15 +155,14 @@ export const sendWelcomeEmail = async (student, enrollLink) => {
  * @param {string} date - YYYY-MM-DD
  */
 export const sendAttendanceConfirmation = async (student, date) => {
-  if (!transporter || !student.email) return; // skip silently
+  if (!student.email) return;
 
   const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
 
   try {
-    await transporter.sendMail({
-      from: `"TechWave Software House" <${process.env.SMTP_USER}>`,
+    const res = await sendEmail({
       to:   student.email,
       subject: `✅ Attendance Marked — ${displayDate}`,
       html: `
@@ -135,6 +181,9 @@ export const sendAttendanceConfirmation = async (student, date) => {
         </div>
       `
     });
+    if (res) {
+      console.log(`✉️  Attendance email sent to ${student.email}`);
+    }
   } catch (err) {
     console.error('Email send failed (non-fatal):', err.message);
   }
@@ -144,12 +193,10 @@ export const sendAttendanceConfirmation = async (student, date) => {
  * Send an automated warning email for low attendance
  */
 export const sendWarningEmail = async (student, percentage) => {
-  if (!transporter) return;
   if (!student.email) return;
 
   try {
-    await transporter.sendMail({
-      from: `"TechWave Software House" <${process.env.SMTP_USER}>`,
+    const res = await sendEmail({
       to: student.email,
       subject: '⚠️ Urgent: Low Attendance Warning',
       html: `
@@ -174,6 +221,9 @@ export const sendWarningEmail = async (student, percentage) => {
         </div>
       `
     });
+    if (res) {
+      console.log(`✉️  Warning email sent to ${student.email}`);
+    }
   } catch (error) {
     console.error('Failed to send warning email:', error.message);
   }
