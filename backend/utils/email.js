@@ -1,14 +1,17 @@
-// #12 — Email notification utility (supports Resend API over HTTPS or SMTP via Nodemailer)
+// #12 — Email notification utility (supports Brevo API, Resend API over HTTPS or SMTP via Nodemailer)
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
 let transporter = null;
 
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const isSMTPConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
-if (RESEND_API_KEY) {
+if (BREVO_API_KEY) {
+  console.log('✉️  Email service configured via Brevo API (HTTPS)');
+} else if (RESEND_API_KEY) {
   console.log('✉️  Email service configured via Resend API (HTTPS)');
 } else if (isSMTPConfigured) {
   transporter = nodemailer.createTransport({
@@ -22,18 +25,49 @@ if (RESEND_API_KEY) {
   });
   console.log('✉️  Email service configured via SMTP:', process.env.SMTP_HOST);
 } else {
-  console.log('ℹ️  Email service not configured — email notifications disabled. Add RESEND_API_KEY or SMTP variables to enable.');
+  console.log('ℹ️  Email service not configured — email notifications disabled. Add BREVO_API_KEY, RESEND_API_KEY or SMTP variables to enable.');
 }
 
 /**
- * Common helper to send email via either Resend API (HTTP) or Nodemailer (SMTP)
+ * Common helper to send email via either Brevo API, Resend API (HTTP) or Nodemailer (SMTP)
  */
 const sendEmail = async ({ to, subject, html }) => {
   const fromName = process.env.EMAIL_FROM_NAME || "TechWave Software House";
-  const fromEmail = process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER || "onboarding@resend.dev";
-  const fromHeader = `"${fromName}" <${fromEmail}>`;
+  const fromEmail = process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER || "techwavesoftwarehouse@gmail.com";
 
-  if (RESEND_API_KEY) {
+  if (BREVO_API_KEY) {
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': BREVO_API_KEY,
+          'accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: fromName, email: fromEmail },
+          to: [{ email: to }],
+          subject: subject,
+          htmlContent: html
+        })
+      });
+      
+      // Brevo might return empty response for 201 Created
+      let data = {};
+      const text = await response.text();
+      if (text) {
+          data = JSON.parse(text);
+      }
+      
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}`);
+      }
+      return data;
+    } catch (err) {
+      throw new Error(`Brevo API failed: ${err.message}`);
+    }
+  } else if (RESEND_API_KEY) {
+    const fromHeader = `"${fromName}" <${fromEmail}>`;
     try {
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -57,6 +91,7 @@ const sendEmail = async ({ to, subject, html }) => {
       throw new Error(`Resend API failed: ${err.message}`);
     }
   } else if (transporter) {
+    const fromHeader = `"${fromName}" <${fromEmail}>`;
     return await transporter.sendMail({
       from: fromHeader,
       to,
