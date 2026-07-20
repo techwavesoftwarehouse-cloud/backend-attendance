@@ -42,7 +42,13 @@ connectDB().then(() => { seedAdmin(); });
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (Render health checks, Postman, etc.)
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    if (!origin) return callback(null, true);
+
+    const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
+                      /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+                      /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin);
+
+    if (isAllowed) {
       return callback(null, true);
     }
     callback(new Error(`CORS: origin ${origin} not allowed`));
