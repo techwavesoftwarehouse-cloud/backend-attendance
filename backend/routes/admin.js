@@ -228,14 +228,38 @@ router.post('/admin/students/bulk-import', authMiddleware, upload.single('csv'),
         enrollmentToken
       });
 
+      const enrollLink = `${FRONTEND_ORIGIN}/enroll?studentId=${student._id}&token=${enrollmentToken}`;
+      
+      // Fire-and-forget the welcome email
+      sendWelcomeEmail(student, enrollLink).catch(() => {});
+
       results.created.push({
         name, rollNumber,
-        enrollLink: `${FRONTEND_ORIGIN}/enroll?studentId=${student._id}&token=${enrollmentToken}`
+        enrollLink
       });
     }
 
     res.json({ success: true, ...results });
   } catch (error) { next(error); }
+});
+
+// POST /api/admin/students/:id/resend-welcome
+router.post('/admin/students/:id/resend-welcome', authMiddleware, async (req, res, next) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ success: false, message: 'Student not found.' });
+    if (!student.email) return res.status(400).json({ success: false, message: 'Student has no email address.' });
+    
+    const enrollLink = `${FRONTEND_ORIGIN}/enroll?studentId=${student._id}&token=${student.enrollmentToken}`;
+    
+    // We await this to know if it actually failed to send
+    await sendWelcomeEmail(student, enrollLink);
+    
+    res.json({ success: true, message: 'Welcome email resent successfully.' });
+  } catch (error) { 
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Failed to resend email.' });
+  }
 });
 
 // DELETE /api/admin/students/:id
