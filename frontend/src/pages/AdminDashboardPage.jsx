@@ -44,7 +44,11 @@ const AdminDashboardPage = () => {
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [attendanceError, setAttendanceError] = useState('');
 
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'attendance' | 'students' | 'reports' | 'subjects' | 'warnings' | 'settings'
+  // Leave requests state
+  const [adminLeaveRequests, setAdminLeaveRequests] = useState([]);
+  const [loadingLeaves, setLoadingLeaves] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'attendance' | 'students' | 'reports' | 'leaves' | 'warnings' | 'settings'
   const [subTab, setSubTab] = useState('present'); // 'present' | 'absent'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -108,6 +112,27 @@ const AdminDashboardPage = () => {
 
 
 
+  const fetchAdminLeaveRequests = useCallback(async () => {
+    setLoadingLeaves(true);
+    try {
+      const { data } = await axiosInstance.get('/api/admin/leave-requests');
+      setAdminLeaveRequests(data.requests || []);
+    } catch {
+      // Silently fail
+    } finally {
+      setLoadingLeaves(false);
+    }
+  }, []);
+
+  const handleUpdateLeaveStatus = async (id, status) => {
+    try {
+      await axiosInstance.patch(`/api/admin/leave-requests/${id}`, { status });
+      fetchAdminLeaveRequests();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update leave request status.');
+    }
+  };
+
   useEffect(() => {
     if (!checkingAuth && activeTab === 'attendance') {
       fetchAttendance();
@@ -119,6 +144,12 @@ const AdminDashboardPage = () => {
       fetchStudents();
     }
   }, [checkingAuth, fetchStudents, activeTab]);
+
+  useEffect(() => {
+    if (!checkingAuth && activeTab === 'leaves') {
+      fetchAdminLeaveRequests();
+    }
+  }, [checkingAuth, fetchAdminLeaveRequests, activeTab]);
 
   const handleLogout = async () => {
     try {
@@ -272,6 +303,7 @@ const AdminDashboardPage = () => {
                activeTab === 'attendance' ? `Attendance — ${displayDate}` : 
                activeTab === 'students' ? 'Student Management' :
                activeTab === 'reports' ? 'Attendance Reports' :
+               activeTab === 'leaves' ? 'Student Leave Requests' :
                activeTab === 'warnings' ? 'Low Attendance Warnings' :
                'Security & Settings'}
             </h1>
@@ -284,6 +316,7 @@ const AdminDashboardPage = () => {
                 { key: 'attendance', label: 'Attendance', icon: '📝' },
                 { key: 'students', label: 'Students', icon: '👥' },
                 { key: 'reports', label: 'Reports', icon: '📈' },
+                { key: 'leaves', label: 'Leaves', icon: '✉️' },
                 { key: 'warnings', label: 'Warnings', icon: '⚠️' },
                 { key: 'settings', label: 'Settings', icon: '⚙️' },
               ].map((tab) => (
@@ -455,6 +488,77 @@ const AdminDashboardPage = () => {
           {/* ═══════════════════════════════════════════ REPORTS TAB ══════ */}
           {activeTab === 'reports' && (
             <ReportsPanel />
+          )}
+
+          {/* ═══════════════════════════════════════════ LEAVES TAB ══════ */}
+          {activeTab === 'leaves' && (
+            <motion.div key="leaves-tab" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              {loadingLeaves ? (
+                <div className="flex justify-center py-16"><svg className="w-8 h-8 text-teal-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div>
+              ) : adminLeaveRequests.length === 0 ? (
+                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 text-sm">
+                  No student leave requests submitted yet.
+                </div>
+              ) : (
+                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-900/80 text-slate-400 text-xs border-b border-slate-800">
+                        <tr>
+                          <th className="px-5 py-3.5 font-semibold">Student Name</th>
+                          <th className="px-5 py-3.5 font-semibold">Roll No.</th>
+                          <th className="px-5 py-3.5 font-semibold">Leave Date</th>
+                          <th className="px-5 py-3.5 font-semibold">Reason</th>
+                          <th className="px-5 py-3.5 font-semibold">Status</th>
+                          <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {adminLeaveRequests.map((req) => (
+                          <tr key={req._id} className="hover:bg-slate-800/30 transition-colors">
+                            <td className="px-5 py-3.5 font-medium text-white">{req.student?.name || 'Unknown'}</td>
+                            <td className="px-5 py-3.5 font-mono text-xs text-teal-400">{req.student?.rollNumber || '—'}</td>
+                            <td className="px-5 py-3.5 font-mono text-slate-300">{req.date}</td>
+                            <td className="px-5 py-3.5 text-slate-300 max-w-xs truncate">{req.reason}</td>
+                            <td className="px-5 py-3.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                                req.status === 'approved'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                  : req.status === 'rejected'
+                                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              }`}>
+                                {req.status === 'approved' && 'Approved ✅'}
+                                {req.status === 'rejected' && 'Rejected ❌'}
+                                {req.status === 'pending' && 'Pending ⏳'}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5 text-right flex justify-end gap-2">
+                              {req.status !== 'approved' && (
+                                <button
+                                  onClick={() => handleUpdateLeaveStatus(req._id, 'approved')}
+                                  className="text-emerald-400 hover:text-emerald-300 text-xs font-medium px-2.5 py-1 rounded-lg hover:bg-emerald-500/10 transition-all border border-emerald-500/20"
+                                >
+                                  Approve
+                                </button>
+                              )}
+                              {req.status !== 'rejected' && (
+                                <button
+                                  onClick={() => handleUpdateLeaveStatus(req._id, 'rejected')}
+                                  className="text-rose-400 hover:text-rose-300 text-xs font-medium px-2.5 py-1 rounded-lg hover:bg-rose-500/10 transition-all border border-rose-500/20"
+                                >
+                                  Reject
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </motion.div>
           )}
 
 

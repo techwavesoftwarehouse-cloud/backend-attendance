@@ -8,6 +8,7 @@ import Admin from './models/Admin.js';
 import adminRouter from './routes/admin.js';
 import webauthnRouter from './routes/webauthn.js';
 import qrRouter from './routes/qr.js';
+import studentRouter from './routes/student.js';
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ app.use(cookieParser());  // #1 — parse httpOnly cookies
 app.use('/api', adminRouter);
 app.use('/api/webauthn', webauthnRouter);
 app.use('/api/qr', qrRouter);
+app.use('/api/student', studentRouter);
 
 // ── Global Error Handler ──
 app.use((err, req, res, next) => {

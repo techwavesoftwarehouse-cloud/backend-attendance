@@ -27,6 +27,10 @@ const studentSchema = new mongoose.Schema({
   enrollmentToken:     { type: String },
   enrollmentTokenUsed: { type: Boolean, default: false },
 
+  // ── Student Login OTP ──
+  otpCode:   { type: String },
+  otpExpiry: { type: Date },
+
   createdAt: { type: Date, default: Date.now }
 });
 

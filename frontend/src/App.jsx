@@ -5,6 +5,8 @@ import AttendancePage from './pages/AttendancePage';
 import EnrollPage from './pages/EnrollPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import StudentLoginPage from './pages/StudentLoginPage';
+import StudentDashboardPage from './pages/StudentDashboardPage';
 
 /**
  * App — root router.
@@ -13,6 +15,8 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
  *   /qr-screen        → QRDisplayPage       (entrance monitor, left open full-screen)
  *   /attendance       → AttendancePage       (student lands here after scanning QR)
  *   /enroll           → EnrollPage           (one-time fingerprint registration)
+ *   /student/login    → StudentLoginPage     (student OTP login)
+ *   /student/dashboard→ StudentDashboardPage (student portal)
  *   /admin/login      → AdminLoginPage
  *   /admin/dashboard  → AdminDashboardPage   (protected — redirects to login if no JWT)
  *   /                 → LandingPage          (public facing instruction page)
@@ -25,6 +29,8 @@ const App = () => {
         <Route path="/qr-screen" element={<QRDisplayPage />} />
         <Route path="/attendance" element={<AttendancePage />} />
         <Route path="/enroll" element={<EnrollPage />} />
+        <Route path="/student/login" element={<StudentLoginPage />} />
+        <Route path="/student/dashboard" element={<StudentDashboardPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         

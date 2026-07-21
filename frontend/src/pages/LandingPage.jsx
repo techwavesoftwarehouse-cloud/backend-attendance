@@ -1,5 +1,6 @@
 import { motion, useMotionValue, animate } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
 /* ══════════════════════════════════════
@@ -386,10 +387,29 @@ const LandingPage = () => {
           ))}
         </motion.div>
 
-        {/* ── Visit website button ── */}
-        <motion.div className="mt-5"
+        {/* ── Action buttons ── */}
+        <motion.div className="mt-6 flex flex-wrap items-center justify-center gap-3"
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}
         >
+          <motion.div whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.97 }}>
+            <Link
+              to="/student/login"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: 'linear-gradient(135deg, #0d9488, #3b82f6)',
+                border: 'none',
+                borderRadius: 999, padding: '11px 26px',
+                color: '#ffffff', fontSize: 14, fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: isDark
+                  ? '0 4px 20px rgba(13,148,136,0.4), 0 0 0 1px rgba(59,130,246,0.2)'
+                  : '0 4px 16px rgba(13,148,136,0.35)',
+              }}
+            >
+              🎓 Student Portal Login
+            </Link>
+          </motion.div>
+
           <motion.a
             href="https://techwaveinfo.com"
             target="_blank" rel="noopener noreferrer"
@@ -397,23 +417,18 @@ const LandingPage = () => {
             whileTap={{ scale: 0.97 }}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: 'linear-gradient(135deg, #1d4ed8, #4f46e5)',
-              border: 'none',
-              borderRadius: 999, padding: '11px 26px',
-              color: '#ffffff', fontSize: 14, fontWeight: 600,
+              background: isDark ? 'rgba(30,41,59,0.8)' : 'rgba(255,255,255,0.9)',
+              border: `1px solid ${tw.cardBorder}`,
+              borderRadius: 999, padding: '11px 24px',
+              color: tw.heading, fontSize: 14, fontWeight: 600,
               textDecoration: 'none',
-              boxShadow: isDark
-                ? '0 4px 20px rgba(29,78,216,0.5), 0 0 0 1px rgba(59,130,246,0.2)'
-                : '0 4px 16px rgba(29,78,216,0.35)',
+              backdropFilter: 'blur(10px)',
             }}
           >
             <svg style={{ width: 15, height: 15 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
-            Visit techwaveinfo.com
-            <svg style={{ width: 12, height: 12, opacity: 0.85 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
+            techwaveinfo.com
           </motion.a>
         </motion.div>
       </motion.div>

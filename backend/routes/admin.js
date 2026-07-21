@@ -7,6 +7,7 @@ import Admin from '../models/Admin.js';
 import Student from '../models/Student.js';
 import Attendance from '../models/Attendance.js';
 import Settings from '../models/Settings.js';
+import LeaveRequest from '../models/LeaveRequest.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getLocalDateString } from '../utils/dateUtils.js';
 import { sendWarningEmail, sendWelcomeEmail } from '../utils/email.js';
@@ -644,4 +645,42 @@ router.post('/admin/warnings/send', authMiddleware, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// GET /api/admin/leave-requests
+router.get('/admin/leave-requests', authMiddleware, async (req, res, next) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+
+    const requests = await LeaveRequest.find(filter)
+      .populate('student', 'name rollNumber field email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ success: true, requests });
+  } catch (error) { next(error); }
+});
+
+// PATCH /api/admin/leave-requests/:id
+router.patch('/admin/leave-requests/:id', authMiddleware, async (req, res, next) => {
+  try {
+    const { status, adminNote } = req.body;
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status.' });
+    }
+
+    const leaveReq = await LeaveRequest.findById(req.params.id);
+    if (!leaveReq) {
+      return res.status(404).json({ success: false, message: 'Leave request not found.' });
+    }
+
+    leaveReq.status = status;
+    if (adminNote !== undefined) leaveReq.adminNote = adminNote;
+    await leaveReq.save();
+
+    res.json({ success: true, message: `Leave request ${status}.`, leaveReq });
+  } catch (error) { next(error); }
+});
+
 export default router;
+

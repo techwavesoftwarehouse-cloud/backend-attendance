@@ -263,3 +263,35 @@ export const sendWarningEmail = async (student, percentage) => {
     console.error('Failed to send warning email:', error.message);
   }
 };
+
+/**
+ * Send an OTP code for student login
+ */
+export const sendOTPEmail = async (student, otpCode) => {
+  if (!student.email) return;
+
+  try {
+    const res = await sendEmail({
+      to: student.email,
+      subject: `🔑 Your TechWave Login OTP Code: ${otpCode}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f172a;color:#f1f5f9;border-radius:16px;overflow:hidden">
+          <div style="background:linear-gradient(90deg,#0d9488,#3b82f6);height:6px"></div>
+          <div style="padding:32px;text-align:center">
+            <h2 style="margin:0 0 8px;font-size:22px;color:#fff">Login Verification Code</h2>
+            <p style="color:#94a3b8;margin:0 0 24px;font-size:14px">Hello <strong>${student.name}</strong>, use the verification code below to log in to your Student Portal:</p>
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;margin:0 auto 24px;display:inline-block;letter-spacing:6px;font-size:28px;font-weight:bold;color:#38bdf8">
+              ${otpCode}
+            </div>
+            <p style="color:#64748b;font-size:12px;margin:0">This code is valid for 10 minutes. Do not share it with anyone.</p>
+          </div>
+        </div>
+      `
+    });
+    if (res) {
+      console.log(`✉️ OTP email sent to ${student.email}`);
+    }
+  } catch (error) {
+    console.error('Failed to send OTP email:', error.message);
+  }
+};
