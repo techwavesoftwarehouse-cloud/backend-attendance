@@ -31,6 +31,23 @@ const studentSchema = new mongoose.Schema({
   otpCode:   { type: String },
   otpExpiry: { type: Date },
 
+  // ── Student Portal Profile ──
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true
+  },
+  profilePicture: { type: String, default: '' },
+  portalTheme: {
+    type: String,
+    enum: ['dark', 'light', 'ocean', 'sunset'],
+    default: 'dark'
+  },
+  accountSetupDone:   { type: Boolean, default: false },
+  portalSetupComplete:{ type: Boolean, default: false },
+
   createdAt: { type: Date, default: Date.now }
 });
 

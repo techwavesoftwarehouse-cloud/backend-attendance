@@ -8,6 +8,7 @@ import Student from '../models/Student.js';
 import Attendance from '../models/Attendance.js';
 import Settings from '../models/Settings.js';
 import LeaveRequest from '../models/LeaveRequest.js';
+import Complaint from '../models/Complaint.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getLocalDateString } from '../utils/dateUtils.js';
 import { sendWarningEmail, sendWelcomeEmail } from '../utils/email.js';
@@ -679,6 +680,38 @@ router.patch('/admin/leave-requests/:id', authMiddleware, async (req, res, next)
     await leaveReq.save();
 
     res.json({ success: true, message: `Leave request ${status}.`, leaveReq });
+  } catch (error) { next(error); }
+});
+
+// GET /api/admin/complaints
+router.get('/admin/complaints', authMiddleware, async (req, res, next) => {
+  try {
+    const complaints = await Complaint.find()
+      .populate('student', 'name rollNumber field email username')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ success: true, complaints });
+  } catch (error) { next(error); }
+});
+
+// PATCH /api/admin/complaints/:id
+router.patch('/admin/complaints/:id', authMiddleware, async (req, res, next) => {
+  try {
+    const { status, adminNote } = req.body;
+    if (status && !['pending', 'reviewed', 'resolved'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status.' });
+    }
+
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found.' });
+    }
+
+    if (status) complaint.status = status;
+    if (adminNote !== undefined) complaint.adminNote = adminNote;
+    await complaint.save();
+
+    res.json({ success: true, message: 'Complaint updated.', complaint });
   } catch (error) { next(error); }
 });
 

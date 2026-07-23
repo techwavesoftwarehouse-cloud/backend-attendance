@@ -3,6 +3,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import Admin from './models/Admin.js';
 import adminRouter from './routes/admin.js';
@@ -11,6 +13,9 @@ import qrRouter from './routes/qr.js';
 import studentRouter from './routes/student.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -61,6 +66,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());  // #1 — parse httpOnly cookies
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Routes ──
 app.use('/api', adminRouter);
